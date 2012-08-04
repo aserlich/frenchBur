@@ -38,24 +38,14 @@ os.chdir('/Volumes/Optibay-1TB/FrenchBur/2011/output')
 
 
 
-jobs = []
-fh = open('/Volumes/Optibay-1TB/FrenchBur/2011/gouv2011.003.txt')
-x = fh.readlines()
-for i in range(0, len(x)):
-	m = regex.search('•\s*(\X+)\s*:\s*', x[i])
-	if m != None:
-		jobs.append(m.group(1).strip())
-		print(x[i])
-
-locs =[]
-fh = open('/Volumes/Optibay-1TB/FrenchBur/2011/gouv2011.003.txt')
-x = fh.readlines()
-for i in range(0, len(x)):
-	print(x[i])
-	m = regex.search(r'•\s*(.*)\s*:\s*', x[i])
-	if m != None:
-		locs.append(i)
-		print(m.group(1))
+# jobs = []
+# fh = open('/Volumes/Optibay-1TB/FrenchBur/2011/gouv2011.003.txt')
+# x = fh.readlines()
+# for i in range(0, len(x)):
+# 	m = regex.search('•\s*(\X+)\s*:\s*', x[i])
+# 	if m != None:
+# 		jobs.append(m.group(1).strip())
+# 		print(x[i])
 
 
 #flag for determing unicode word boundaries
@@ -69,58 +59,105 @@ jobsout.writerows(jobs)
 
 myfile = open('jobs.csv', 'wb')
 
-email = regex.compile(r'([a-zA-Z0-9+.-]+@[a-z0-9.-]+.fr)', flag=regex.UNICODE)
-tel = regex.compile(r'Tél\.\s*:\s*\+*((?:[0-9]\s?){10,14})', flag=regex.UNICODE)
-fax = regex.compile(r'Fax\.\s*:\s*\+*((?:[0-9]\s?){10,14})', flag=regex.UNICODE)
+D={}
+
+def emtefa(text, D):    # check whether material is a ph
+	levels = 0 #distance from original title
+#needs to bu called recursively until no other material about thee individual is available
+	email = regex.compile(r'([a-zA-Z0-9+.-]+@[a-z0-9.-]+.fr)', flag=regex.UNICODE)
+	tel = regex.compile(r'Tél\.\s*:\s*\+*((?:[0-9]\s?){10,14})', flag=regex.UNICODE)
+	fax = regex.compile(r'Fax\.\s*:\s*((?:\+*[0-9]\s?){10,14})', flag=regex.UNICODE)
+	ecount = 0 
+	tcount = 0
+	fcount = 0
+	em = regex.search(email, text)
+	if  em != None:
+		D['email'] = em.group(1).strip()
+		#print(D['email'])
+		ecount = 1
+	te = regex.search(tel, text)
+	if te != None:
+		D['tel'] = te.group(1).strip()
+		tcount = 1
+	fa = regex.search(fax,  text)	
+	if fa != None:
+		D['fax'] = fa.group(1).strip()
+		fcount = 1
+	if levels == 0: #only when we are at the same level as the title
+		if ecount == 1:
+			nm = regex.split(email, text)
+			D = checkName(nm[0].strip(), D)
+		elif tcount	== 1:
+			nm = regex.split(tel, text)
+			D = checkName(nm[0].strip(), D)
+		elif fcount	== 1:
+			nm = regex.split(tel, text)
+			D = checkName(nm[0].strip(), D)
+		else:
+			D = checkName(text, D)
+		#print(D['name'])
+	return(D)
+
+def checkName(nameText, D):    # check whether material is a ph
+	#There can be a comma with a title
+	#there can be a title without a comma
+	#there can be just a comma -- in which case the title is on the next line
+	#if the number of words is two, assume it is a name
+	#if the number of words is three or 4 and the second two are uppercase assume it is name
+	nameText = nameText.strip()
+	if regex.search(r',', nameText,  flag=regex.UNICODE):
+		print("split the comma on", nameText) 
+		nt = nameText.split(',', 1)
+		D['name'] = nt[0].strip()
+		if len(nt[1].strip()) > 0:
+			D['title'] = nt[1].strip()
+		else:
+			print("unimplemented where comma is on end of line and title is on next") #this should be when there is a comma but the title is on the next line?
+	elif len(nameText.split(" ")) == 2 or nameText == "N...":
+		D['name'] = nameText
+	elif len(nameText.split(" ")) > 2:
+		#find the border between the name and the non-name
+		f = regex.findall(r'([\p{Lu}]{2,20}\-?\'?[\p{Lu}]{0,20})', nameText, flag=regex.UNICODE)
+		if not f:
+			print(nameText, "is problematic because most likely no capital distinguished the name from the title")
+			input("Press Enter to continue...")
+		else:
+			index = nameText.find(f[-1])
+			end = index +len(f[-1]) + 1
+			D['name'] = nameText[0:end]
+			D['title'] = nameText[end:len(nameText)]
+	else:
+		print("This is problematic with an undiagnosed problem", nameText)
+		input("Press Enter to continue...")
+	return(D)
+
+
+
+locs =[]
+fh = open('/Volumes/Optibay-1TB/FrenchBur/2011/rawText/gouv2011.003V1.1.txt')
+x = fh.readlines()
+for i in range(0, len(x)):
+	print(x[i])
+	m = regex.search(r'•\s*(.*)\s*:\s*', x[i])
+	if m != None:
+		locs.append(i)
+		print(m.group(1))
 
 storage = []
 garbage = []	
-fh = open('/Volumes/Optibay-1TB/FrenchBur/2011/gouv2011.003.txt')
+fh = open('/Volumes/Optibay-1TB/FrenchBur/2011/rawText/gouv2011.003V1.1.txt')
 x = fh.readlines()
 for i in locs:
-	keys = ['loc','name','rank','email','tel','fax']
+	keys = ['loc','name','rank','email','tel','fax', 'title']
 	D= {key: None for key in keys}
 	D['loc'] = i
-	m = regex.split(r'•\s*(.*?):\s*',x[i])
-	if len(m[2].strip()) == 0:
-		D['rank'] = m[1].strip()
-		#print(D['rank'])
-		ecount = 0 
-		tcount = 0
-		fcount = 0
-		em = regex.search(email, x[i+1])
-		if  em != None:
-			D['email'] = em.group(1).strip()
-			#print(D['email'])
-			ecount = 1
-		te = regex.search(tel, x[i+1])
-		if te != None:
-			D['tel'] = te.group(1).strip()
-			tcount = 1
-		fa = regex.search(fax,  x[i+1])	
-		if fa != None:
-			D['fax'] = fa.group(1).strip()
-			fcount = 1
-		if ecount == 1:
-			nm = regex.split(email, x[i+1])
-			D['name'] = nm[0].strip()
-		elif tcount	== 1:
-			nm = regex.split(tel, x[i+1])
-			D['name'] = nm[0].strip()
-		elif fcount	== 1:
-			nm = regex.split(tel, x[i+1])
-			D['name'] = nm[0].strip()
-		else:
-			D['name'] = x[i+1].strip()
-			#print(D['name'])
+	m = regex.split(r'•\s*(.*?):\s*',x[i]) #split line with rank
+	D['rank'] = m[1].strip()
+	if len(m[2].strip()) == 0: #if there is only a rank
+		 #put rank in dict and assume name is on next line potentially with some other info
+		D = emtefa(x[i+1], D)
 	else: #this needs to be fixed for checking all the stuff on the same line
-		em = regex.search(email, x[i])
-		if  em != None:
-			D['email'] = em.group(1).strip()
-			print(D['email'])
-			ecount = 1
-		D['name'] = m[2].strip()
-		D['rank'] = m[1].strip()
+		D = emtefa(m[2].strip(), D)
 	storage.append(D)
 
 res = pd.DataFrame(columns=keys)
@@ -128,7 +165,7 @@ for q in range(0, len(storage)):
 	row = pd.DataFrame((storage[q]), index = [q])
 	res = res.append(row, ignore_index=True)
 	
-DataFrame.to_csv
+
 
 res.to_csv('/Volumes/Optibay-1TB/FrenchBur/2011/output/frenchBur20120802.csv')
 		
