@@ -12,19 +12,6 @@ import pandas as pd
 import numpy
 import scipy
 
-# 1) create a two dimensial array where each name gets an entry
-# 2) go through the lines until I find a title
-# 3) if there is text after the title, then that's the name but run checks
-#4 4) if there is no text, take the next line and evaluate as the name -- put it in the db
-	#if it is "N...", then make it an NA
-# 5) After name is entered, evaluate following lines with regular expressions for all of the following potential info
-#		1)email
-#		2)tel
-#		3)fax		
-#		4)address
-#		5) keep track of how many lines down this goes
-# 6) The next line will be a title of a bureacratic level associated with the next name
-#	Which needs to to stored to put into the next persons entry
 
 #os.chdir('/Volumes/Optibay-1TB/FrenchBur/2011/output')
 def firstPass(fileName):
@@ -158,7 +145,7 @@ def checkName(nameText, D, nextRow):    # check whether material is a ph
 
 def getNames(allLines, locs1, locs2, x):
 	"""
-	Calls appropriate helper functions to accurately parse name infromation
+	Calls appropriate helper functions to accurately parse name information
 	"""		
 	locs = locs1 + locs2
 	locs = sorted(locs)
