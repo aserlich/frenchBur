@@ -1,25 +1,16 @@
-Richard martinez Serge maurel
 
-administrateur civil
+Current issues
 
-Xavier ventosa
+1. There is a minor problem in distinguishing name text and other text, when Abbyy Lingvo reads a caps name as lower case
+	Places where there are multiple names on one line or no rank between them -RES[These are coded with a name flag]
+	(e.g) Richard martinez Serge maurel -- 
+ 	Pascal LEMAIRE Benoît PIGUET Rachel CHANE SEE CHU François ARSAC Patrick FEVRIER Lionel MOISY-DE-CALA
+2. There are names where there are duel appointments and we only catpure the first name (e.g,Georges garioud and Nicolas MOLFESSIS)
+	We currently don't have Niclas MOLFESSIS
 
-commandant de police
-
-Lionel SABATER-BONO
-
-
-1. GHESTEM on page 303 only has one name
-2. VAEZ-OLIVERA on page 409 only has one name
+Notes
+1. There are a few multiple appointments, e.g, Sébastien SEGARRA. This shouldn't be a problem
+3. There are few officials with one name (e.g, GHESTEM on page 303 only has one name, VAEZ-OLIVERA on page 409 only has one name)
+	Just to document that that occures
 
 
-Currentissues
-
-1. x[15271] multiple members
-2. x[16377] Pascal LEMAIRE Benoît PIGUET Rachel CHANE SEE CHU François ARSAC Patrick FEVRIER Lionel MOISY-DE-CALA
-3. There are a few multiple appointments, i.e, Sébastien SEGARRA
-4. x[29762] fax number
-5. x[29769] fax number
-5. multiple members x[32385] Richard martinez Serge maurel
-6. x[32407] Georges garioud directeur de recherche Nicolas MOLFESSIS
-7. bessie.leconte@gern-cnrs.com  is not a .fr
