@@ -5,7 +5,6 @@ FrenchBur2011.py
 
 Created by Aaron Erlich on 2012-08-01.
 """
-
 import sys
 import os
 import regex
@@ -18,7 +17,7 @@ import scipy
 # 3) if there is text after the title, then that's the name but run checks
 #4 4) if there is no text, take the next line and evaluate as the name -- put it in the db
 	#if it is "N...", then make it an NA
-# 5) After name is entered, evaluate folloing lines with regular expressions for all of the following potential info
+# 5) After name is entered, evaluate following lines with regular expressions for all of the following potential info
 #		1)email
 #		2)tel
 #		3)fax		
@@ -29,7 +28,12 @@ import scipy
 
 #os.chdir('/Volumes/Optibay-1TB/FrenchBur/2011/output')
 def firstPass(fileName):
-	print(fileName)
+	""""
+	takes whole file and finds all locations where there is bureaucratic rank info
+	"""
+	fh = open(fileName)
+	fh.seek(0)
+	x = fh.readlines()
 	allLines = [] #to store all lines in file analyzed and take advantage of nested scoping in python
 	locs1 = [] #store locations of ranks to analze
 	for i in range(0, len(x)):
@@ -55,19 +59,20 @@ def firstPass(fileName):
 				garbage.append([i,''.join([x[i].strip(), x[i+1].strip()])])
 				print(''.join([x[i].strip(), x[i+1].strip()]), "IS A DAM ERROR")
 			#input("Press Enter to continue...")
-	print("PRELIMINARY PASSES DONE ON TO BUILDING THE DATABSE...")
+	print("PRELIMINARY PASSES DONE ON TO BUILDING THE DATABASE...")
 	output = getNames(allLines, locs1, locs2, x)
 	return(output)
 
 def emtefa(text, D, nextRow):
 	'''
-	takes text, given text and a dictionary and checks whether the text has a fax, email or phone number
-	it then parses out the email fax and phone and adds it a dict
+	takes text, given text and a dictionary, and checks whether the text has a fax, email or phone number
+	it then parses out the email fax and phone and adds it to the dict
 	if the level = 0, then it assumes the name is present in the text and calls check name do pull out the name
+	Currently there is no level passed but the level is set to zero
 	'''
 	levels = 0 #distance from original title
-#needs to bu called recursively until no other material about thee individual is available
-	email = regex.compile(r'([a-zA-Z0-9+.-]+@[a-z0-9.-]+.fr)', flag=regex.UNICODE)
+	#needs to bu called recursively until no other material about thee individual is available
+	email = regex.compile(r'([a-zA-Z0-9+.-]+@[a-z0-9.-]+\.(fr|com))', flag=regex.UNICODE)
 	tel = regex.compile(r'Tél\.\s*:\s*\+*((?:[0-9]\s?){10,14})', flag=regex.UNICODE)
 	fax = regex.compile(r'Fax\.\s*:\s*((?:\+*[0-9]\s?){10,14})', flag=regex.UNICODE)
 	ecount = 0 
@@ -92,21 +97,24 @@ def emtefa(text, D, nextRow):
 			D = checkName(nm[0].strip(), D, nextRow)
 		elif tcount	== 1:
 			nm = regex.split(tel, text)
-			D = checkName(nm[0].strip(), D, nextRow)
+			checkName(nm[0].strip(), D, nextRow)
 		elif fcount	== 1:
 			nm = regex.split(tel, text)
-			D = checkName(nm[0].strip(), D, nextRow)
+			checkName(nm[0].strip(), D, nextRow)
 		else:
-			D = checkName(text, D, nextRow)
+			checkName(text, D, nextRow)
 		#print(D['name'])
-	return(D)
+	#return(D)
 
 def checkName(nameText, D, nextRow):    # check whether material is a ph
+	"""
+	File runs check to make sure only a name is extracted 
 	#There can be a comma with a title
 	#there can be a title without a comma
 	#there can be just a comma -- in which case the title is on the next line
 	#if the number of words is two, assume it is a name
 	#if the number of words is three or 4 and the second two are uppercase assume it is name
+	"""
 	nameText = nameText.strip()
 	if regex.search(r',', nameText,  flag=regex.UNICODE):
 		nt = nameText.split(',', 1)
@@ -141,16 +149,17 @@ def checkName(nameText, D, nextRow):    # check whether material is a ph
 				D['title'] = nameText[end:len(nameText)]
 			if len(nameText[0:end].split(" ")) > 6: #this could be better if needed length 6 is arbitrary
 				D['nameFlag'] = 2
-				print(nameText, ":it is strangely long. Flag 2 added")
-				input("Press Enter to continue...")
+				#print(nameText, ":it is strangely long. Flag 2 added")
+				#input("Press Enter to continue...")
 	else:
 		print("This is problematic with an undiagnosed problem", nameText)
 		input("Press Enter to continue...")
-	return(D)
+	#return(D)
 
-
-
-def getNames(allLines, locs1, locs2, x):		
+def getNames(allLines, locs1, locs2, x):
+	"""
+	Calls appropriate helper functions to accurately parse name infromation
+	"""		
 	locs = locs1 + locs2
 	locs = sorted(locs)
 	storage = []	
@@ -168,23 +177,21 @@ def getNames(allLines, locs1, locs2, x):
 		if len(m[2].strip()) == 0: #if there is only a rank
 		 	#assume name is on next line potentially with some other info
 			allLines.append(x[i+1])
-			D = emtefa(x[i+1], D, x[i+2])
-			#print(D)
+			emtefa(x[i+1], D, x[i+2])
 		else:  #name is on the same line
-			D = emtefa(m[2].strip(), D, x[i+1])
+			emtefa(m[2].strip(), D, x[i+1])
 		storage.append(D)
 	return([allLines,locs,storage])
 
-fh = open('/Volumes/Optibay-1TB/FrenchBur/2011/rawText/gouv2011.003V1.3.txt')
-fh.seek(0)
-x = fh.readlines()
-op = firstPass(x)
 
+###Get output
+op = firstPass('/Volumes/Optibay-1TB/FrenchBur/2011/rawText/gouv2011.003V1.3.txt')
 
+keys = ['loc','name', 'nameFlag', 'rank','email','tel','fax', 'title']
 res = pd.DataFrame(columns=keys)
-for q in range(0, len(storage)):
-	row = pd.DataFrame((storage[q]), index = [q])
+for q in range(0, len(op[2])):
+	row = pd.DataFrame((op[2][q]), index = [q])
 	res = res.append(row, ignore_index=True)
-	
-res.to_csv('/Volumes/Optibay-1TB/FrenchBur/2011/output/frenchBur20120803V2.csv')
+
+res.to_csv('/Volumes/Optibay-1TB/FrenchBur/2011/output/frenchBur20120803V2.1.csv')
 		
