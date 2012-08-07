@@ -1,0 +1,25 @@
+Richard martinez Serge maurel
+
+administrateur civil
+
+Xavier ventosa
+
+commandant de police
+
+Lionel SABATER-BONO
+
+
+1. GHESTEM on page 303 only has one name
+2. VAEZ-OLIVERA on page 409 only has one name
+
+
+Currentissues
+
+1. x[15271] multiple members
+2. x[16377] Pascal LEMAIRE Benoît PIGUET Rachel CHANE SEE CHU François ARSAC Patrick FEVRIER Lionel MOISY-DE-CALA
+3. There are a few multiple appointments, i.e, Sébastien SEGARRA
+4. x[29762] fax number
+5. x[29769] fax number
+5. multiple members x[32385] Richard martinez Serge maurel
+6. x[32407] Georges garioud directeur de recherche Nicolas MOLFESSIS
+7. bessie.leconte@gern-cnrs.com  is not a .fr
