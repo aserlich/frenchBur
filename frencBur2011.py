@@ -72,7 +72,7 @@ def emtefa(text, D, nextRow):
 	'''
 	levels = 0 #distance from original title
 	#needs to bu called recursively until no other material about thee individual is available
-	email = regex.compile(r'([a-zA-Z0-9+.-]+@[a-z0-9.-]+\.(fr|com))', flag=regex.UNICODE)
+	email = regex.compile(r'([a-zA-Z0-9+.-]+@[a-z0-9.-]+\.(fr|com|eu))', flag=regex.UNICODE)
 	tel = regex.compile(r'Tél\.\s*:\s*\+*((?:[0-9]\s?){10,14})', flag=regex.UNICODE)
 	fax = regex.compile(r'Fax\.\s*:\s*((?:\+*[0-9]\s?){10,14})', flag=regex.UNICODE)
 	ecount = 0 
@@ -147,7 +147,7 @@ def checkName(nameText, D, nextRow):    # check whether material is a ph
 			D['name'] = nameText[0:end]
 			if len(nameText[end:len(nameText)]) > 0 :
 				D['title'] = nameText[end:len(nameText)]
-			if len(nameText[0:end].split(" ")) > 6: #this could be better if needed length 6 is arbitrary
+			if len(nameText[0:end].split(" ")) > 5: #this could be better if needed length 6 is arbitrary
 				D['nameFlag'] = 2
 				#print(nameText, ":it is strangely long. Flag 2 added")
 				#input("Press Enter to continue...")
