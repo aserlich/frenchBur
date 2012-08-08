@@ -38,7 +38,9 @@ def firstPass(fileName):
 		if dot == 0 and colon1 == -1:
 			colon2 = x[i+1].find(':')
 			if colon2 >= 0:
-				allLines.extend([x[i], x[i+1]])
+				allLines.extend([i, i+1])
+				print(allLines)
+				input("")
 				locs2.append(i+1)
 				print(x[i].strip())
 				print(x[i+1].strip())
@@ -59,7 +61,7 @@ def emtefa(text, D, nextRow):
 	'''
 	levels = 0 #distance from original title
 	#needs to bu called recursively until no other material about thee individual is available
-	email = regex.compile(r'([a-zA-Z0-9+.-]+@[a-z0-9.-]+\.(fr|com|eu))', flag=regex.UNICODE)
+	email = regex.compile(r'([a-zA-Z0-9+.-]+@[a-z0-9.-]+\.(?:fr|com|eu))', flag=regex.UNICODE)
 	tel = regex.compile(r'Tél\.\s*:\s*\+*((?:[0-9]\s?){10,14})', flag=regex.UNICODE)
 	fax = regex.compile(r'Fax\.\s*:\s*((?:\+*[0-9]\s?){10,14})', flag=regex.UNICODE)
 	ecount = 0 
@@ -143,6 +145,7 @@ def checkName(nameText, D, nextRow):    # check whether material is a ph
 		input("Press Enter to continue...")
 	#return(D)
 
+
 def getNames(allLines, locs1, locs2, x):
 	"""
 	Calls appropriate helper functions to accurately parse name information
@@ -163,7 +166,7 @@ def getNames(allLines, locs1, locs2, x):
 			D['rank'] = m[1].strip()
 		if len(m[2].strip()) == 0: #if there is only a rank
 		 	#assume name is on next line potentially with some other info
-			allLines.append(x[i+1])
+			allLines.append(i+1)
 			emtefa(x[i+1], D, x[i+2])
 		else:  #name is on the same line
 			emtefa(m[2].strip(), D, x[i+1])
@@ -182,3 +185,41 @@ for q in range(0, len(op[2])):
 
 res.to_csv('/Volumes/Optibay-1TB/FrenchBur/2011/output/frenchBur20120803V2.1.csv')
 		
+
+
+
+
+def findStrays(prevLines, fileName):
+	namedb =[]
+	names = regex.compile(r"""[\p{Lu}][\p{Ll}]{2,15}(?:[\p{Pd}][\p{Lu}][\p{Ll}]+\ |\ )
+					(?:(?:[\p{Lu}])(?:'|[\p{Lu}]{2,3})(?:['\p{Pd}\p{Lu}]{0,10})|(?:DE|DU|LE|LA))
+					(?:(?:(?:\ [\p{Lu}])(?:'|[\p{Lu}]{2,3})(?:['\p{Pd}\p{Lu}]{0,10}))|(?:\ DE|\ DU|\ LE|\ LA)){0,5}""", regex.VERBOSE | regex.UNICODE)
+	fh = open(fileName)
+	fh.seek(0)
+	x = fh.readlines()
+	for i in range(0, len(x)):
+		if i not in prevLines:
+			f = regex.findall(names, x[i])
+			if len(f) >0:
+				print(f)
+				namedb.append(f)
+	return namedb
+
+ndb = findStrays(op[0], '/Volumes/Optibay-1TB/FrenchBur/2011/rawText/gouv2011.003V1.3.txt')
+
+flatten = lambda *n: (e for a in n
+    for e in (flatten(*a) if isinstance(a, (tuple, list)) else (a,)))
+
+
+ndb = (list(flatten(ndb)))
+
+
+nonNames = ["Télédoc","Télécopie","Site","Contact", "Groupe", "France","Cellule","Délégation","Mission","Département","Centre", "Télécom",
+			"Fonds", "Iles","Valletta","Bâtiment","Secteur"]
+
+for n in range(0, len(ndb)):
+	if ndb[n].split(" ")[0] not in nonNames:
+		print(ndb[n])
+
+
+
