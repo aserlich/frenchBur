@@ -45,7 +45,7 @@ def getPN(fileName):
 	return(PNentries)
 
 #To implement later are tests
-pns = getPN('/Volumes/Optibay-1TB/FrenchBur/2011/rawText/gouv2011.003V1.3.txt')	
+#pns = getPN('/Volumes/Optibay-1TB/FrenchBur/2011/rawText/gouv2011.003V1.3.txt')	
 #set(range(64,413)) -set(pns)
 #set(pns) - set(range(64,413))	
 #{304, 234, 93, 94}	
