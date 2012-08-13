@@ -13,14 +13,13 @@ import numpy
 
 def getLevels(fileName):
 	"""
-	File removes headers, footers, and alphabetization from index file
+	File removes headers, footers, and alphabetization from index file, and the calls clean levels
+	to turn a dictionary file of index entries.
 	Currently only tested for 2011
 	"""
-	import codecs
-	locs = getPN(fileName)[1] 	#call getpage numebers to remove these from file
-	#print(locs)
+	#import codecs
+	locs = [linenums['endLoc'] for linenums in getPN(fileName)] #call getpage numebers to remove these from file
 	fh = open(fileName)
-	fh.seek(0)
 	x = fh.readlines()
 	fh.close()
 	for i in range(0, len(x)):
@@ -31,15 +30,16 @@ def getLevels(fileName):
 	for i in range(0, len(x)):
 		if i not in locs:
 			xmod.extend([x[i]])
-	return xmod
+	output = cleanLevels(xmod)
+	return output
 
 def cleanLevels(xmod):
 	"""
-	This function determines whether or not an index entry is on one or two lines and parses the index entry from the page number 
-	It then calls the function split level to extract more information about the level
+	Determines whether or not an index entry is on one or two lines and parses the index entry from the page number. 
+	It then calls the function split level to extract more information about the index entry -- info in the parentheses .
 	"""
-	allLines =[]
-	storage = []
+	evalLines =[]
+	indEntries = []
 	ac = regex.compile(r'\.*([1-9][0-9]{2}|[4-9][0-9])\n', flag=regex.UNICODE) #the or has to get around G20 which is in a title
 	ac2 = regex.compile(r'\.*([1-9][0-9]{2}|[4-9][0-9])', flag=regex.UNICODE)
 	keys = ['pageNum','fullName', 'org', 'com']
@@ -49,33 +49,45 @@ def cleanLevels(xmod):
 		#or dict.fromkeys(keys, None)
 		m = regex.search(ac, xmod[i])
 		#print(xmod[i], i)
-		if m!=None: #if there is a page number
-			if i not in allLines: #and the thing hasn't been evluated before
+		if m != None: #if there is a page number THIS SHOULD BE RECURSIVE
+			if i not in evalLines: #and the thing hasn't been evluated before
 				fe1 = xmod[i].strip()
-				D['pageNum'] = m.group(1).strip()
-				allLines.append(i)
+				D['pageNum'] = int(m.group(1).strip())
+				evalLines.append(i)
 				D['fullName'] = regex.split(ac2, fe1)[0]
-				storage.append(D)
-		elif m == None: #if there is no page number - page number is on next line
-			if i not in allLines:
-				fe2 = ' '.join([xmod[i].strip(), xmod[i+1].strip()])
-				s1 = regex.search(ac, xmod[i+1])
-				D['pageNum'] = s1.group(1).strip()
-				allLines.append(i)
-				allLines.append(i+1)
-				D['fullName'] = regex.split(ac2, fe2)[0]
-				storage.append(D)
+				indEntries.append(D)
+		elif m == None: #if there is no page number - page number may be on next line
+			if i not in evalLines:
+				fe2 = " ".join([xmod[i].strip(), xmod[i+1].strip()]) #join two lines together
+				s1 = regex.search(ac, xmod[i+1]) #look for the page number in the scond line
+				if s1 != None: #if its on the second line
+					D['pageNum'] = int(s1.group(1).strip()) 
+					evalLines.append(i)
+					evalLines.append(i+1)
+					D['fullName'] = regex.split(ac2, fe2)[0]
+					indEntries.append(D)
 				#if xmod[i] =='Secrétariat général de la présidence française du G20 et du G8':
 					#print(xmod[i], 'is the problem')
+				elif s1 == None:
+					if i not in evalLines:
+						fe3 = " ".join([fe2, xmod[i+2]])
+						s2 = regex.search(ac, xmod[i+2])
+						D['pageNum'] = int(s2.group(1).strip())
+						evalLines.append(i+2)
+						D['fullName'] = regex.split(ac2, fe3)[0]
+						indEntries.append(D)
 		print(D['fullName'])
 		print(i)
-	splitLevel(storage)
-	return([storage, allLines])
+	splitLevel(indEntries)
+	index = {}
+	index['indEntries'] = indEntries
+	index['evalLines'] = evalLines
+	return(index) # current for testing
 
 def splitLevel(recs):
 	"""
 	This function extracts information about the committee and ministry associated with an entry and adds it to the dictionary
-	Currently called from cleanLevels()
+	Currently called from cleanLevels().
 	"""
 	mnstry = regex.compile(r"\(((([\p{Lu}]{0,3}|[\p{Ll}]{1}])[\p{Ll}]{0,8}\..*)|PM|CE)\)", flag=regex.UNICODE)
 	cmte = regex.compile(r"\(+?(([\p{Lu}]{3})(?!\.).*?)\)+?", flag=regex.UNICODE) #still doesn't capture typo of ECO.
@@ -85,26 +97,25 @@ def splitLevel(recs):
 		ms = regex.findall(mnstry, rec['fullName'])[0][0].replace(' ','').capitalize()
 		rec['org'] = ms
 		cm = regex.search(cmte, rec['fullName'])
-		if cm != None:
-			#print(cm.group(1))
-			rec['nameOnly'] = regex.split(cmte, rec['fullName'])[0]
-			rec['com'] = cm.group(1)
-		else: 
-			rec['nameOnly'] = 	regex.split(mnstry, rec['fullName'])[0]
+		# if cm != None:
+		# 	#print(cm.group(1))
+		# 	rec['nameOnly'] = regex.split(cmte, rec['fullName'])[0]
+		# 	rec['com'] = cm.group(1)
+		#else: 
+		rec['nameOnly'] = 	(regex.split(mnstry, rec['fullName'])[0]).strip()
 
 ###Code uses to call the functions and export it
 
-xmod = getLevels('/Volumes/Optibay-1TB/FrenchBur/2011/rawText/indices2011.007_indexadministrationcentralesV1.1.txt')
-recs = cleanLevels(xmod)
+xmod = getLevels('/Volumes/Optibay-1TB/FrenchBur/2011/rawText/indices2011.007_indexadministrationcentralesV1.3.txt')
 set(recs[1]) - set(range(0,1100))#check for the missing lines
 
-keys = ['pageNum','fullName', 'org', 'com']
+keys = ['pageNum','fullName', 'nameOnly', 'org', 'com']
 res = pd.DataFrame(columns=keys)
-for q in range(0, len(recs[0])):
-	row = pd.DataFrame((recs[0][q]), index = [q])
+for q in range(0, len(xmod['indEntries'])):
+	row = pd.DataFrame(xmod['indEntries'][q], index = [q])
 	res = res.append(row, ignore_index=True)
 
-res.to_csv('/Volumes/Optibay-1TB/FrenchBur/2011/output/frenchBurOrgs20120806V2.csv')
+res.to_csv('/Volumes/Optibay-1TB/FrenchBur/2011/output/frenchBurOrgs20120806V2.2.csv')
 		
 
 #current errors
