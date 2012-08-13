@@ -11,9 +11,11 @@ import regex
 import pandas as pd
 import numpy
 import scipy
+import datetime
+import pickle
 
 
-#os.chdir('/Volumes/Optibay-1TB/FrenchBur/2011/output')
+#os.chdir('/Volumes/Optibay-1TB/FrenchBur/2011/output/')
 def firstPass(fileName):
 	""""
 	takes whole file and finds all locations where there is bureaucratic rank info
@@ -27,7 +29,7 @@ def firstPass(fileName):
 		m = regex.search(r'•\s*(.*)\s*:\s*', x[i])
 		if m != None:
 			locs1.append(i)
-			print(m.group(1))
+			#print(m.group(1))
 	allLines = list(locs1)
 	#part2 g over the file again
 	locs2 = []
@@ -39,17 +41,32 @@ def firstPass(fileName):
 			colon2 = x[i+1].find(':')
 			if colon2 >= 0:
 				allLines.extend([i, i+1])
-				print(allLines)
-				input("")
+				#print(allLines)
+				#input("")
 				locs2.append(i+1)
-				print(x[i].strip())
-				print(x[i+1].strip())
+				#print(x[i].strip())
+				#print(x[i+1].strip())
 			elif colon2 == -1:
 				garbage.append([i,''.join([x[i].strip(), x[i+1].strip()])])
 				print(''.join([x[i].strip(), x[i+1].strip()]), "IS A DAM ERROR")
 			#input("Press Enter to continue...")
-	print("PRELIMINARY PASSES DONE ON TO BUILDING THE DATABASE...")
-	output = getNames(allLines, locs1, locs2, x)
+	print("PRELIMINARY PASSES DONE ON TO BUILDING THE DATABASE...\n Files in this pass will be pickled in current working directory")
+	evalLines, entries = getNames(allLines, locs1, locs2, x) #returns allLines, locs and the dictionary of entries [2]
+	print("GETTING PAGE NUMBERS")
+	#pns = getPN(fileName) #returns two list of page numbers and locations and a third as a dictionary [2]
+	#matchPNDict(output[2], pns[2]) #gives the dictionary of entrys and dictionary of page numbers
+	#output.extend(pns[2])
+	#output[0].extend(pns[0]) #add the pagenumber lines to the lines that have been evaluated
+	#rnow = datetime.date.today().strftime("%Y%m%d-%H-%M")
+	#os.chdir('/Volumes/Optibay-1TB/FrenchBur/2011/output/')
+	#os.chdir(os.path.dirname(sys.argv[0] #only will work if this suit of tool is invoke properlyo
+	#fname = 'firstPass'+rnow +'.pkl'
+	#F = open(fname, 'wb')
+	#pickle.dump(output,F)
+	#F.close()
+	output = {}
+	output['evalLines'] = evalLines
+	output['entries'] = entries
 	return(output)
 
 def emtefa(text, D, nextRow):
@@ -61,7 +78,7 @@ def emtefa(text, D, nextRow):
 	'''
 	levels = 0 #distance from original title
 	#needs to bu called recursively until no other material about thee individual is available
-	email = regex.compile(r'([a-zA-Z0-9+.-]+@[a-z0-9.-]+\.(?:fr|com|eu))', flag=regex.UNICODE)
+	email = regex.compile(r'([a-zA-Z0-9+.-']+@[a-z0-9.-]+\.(?:fr|com|eu))', flag=regex.UNICODE)
 	tel = regex.compile(r'Tél\.\s*:\s*\+*((?:[0-9]\s?){10,14})', flag=regex.UNICODE)
 	fax = regex.compile(r'Fax\.\s*:\s*((?:\+*[0-9]\s?){10,14})', flag=regex.UNICODE)
 	ecount = 0 
@@ -113,7 +130,7 @@ def checkName(nameText, D, nextRow):    # check whether material is a ph
 		elif len(nt[1].strip()) == 0:
 			print("comma is on end of line and title is on next. Title is:", nextRow.strip()) #this should be when there is a comma but the title is on the next line?
 			D['title'] = nextRow.strip()
-			input("Press Enter to continue...")
+			#input("Press Enter to continue...")
 	elif len(nameText.split(" ")) == 2 or nameText == "N..." :
 		D['name'] = nameText
 	elif nameText == "n...":
@@ -171,55 +188,7 @@ def getNames(allLines, locs1, locs2, x):
 		else:  #name is on the same line
 			emtefa(m[2].strip(), D, x[i+1])
 		storage.append(D)
-	return([allLines,locs,storage])
-
-
-###Get output
-op = firstPass('/Volumes/Optibay-1TB/FrenchBur/2011/rawText/gouv2011.003V1.3.txt')
-
-keys = ['loc','name', 'nameFlag', 'rank','email','tel','fax', 'title']
-res = pd.DataFrame(columns=keys)
-for q in range(0, len(op[2])):
-	row = pd.DataFrame((op[2][q]), index = [q])
-	res = res.append(row, ignore_index=True)
-
-res.to_csv('/Volumes/Optibay-1TB/FrenchBur/2011/output/frenchBur20120803V2.1.csv')
-		
-
-
-
-
-def findStrays(prevLines, fileName):
-	namedb =[]
-	names = regex.compile(r"""[\p{Lu}][\p{Ll}]{2,15}(?:[\p{Pd}][\p{Lu}][\p{Ll}]+\ |\ )
-					(?:(?:[\p{Lu}])(?:'|[\p{Lu}]{2,3})(?:['\p{Pd}\p{Lu}]{0,10})|(?:DE|DU|LE|LA))
-					(?:(?:(?:\ [\p{Lu}])(?:'|[\p{Lu}]{2,3})(?:['\p{Pd}\p{Lu}]{0,10}))|(?:\ DE|\ DU|\ LE|\ LA)){0,5}""", regex.VERBOSE | regex.UNICODE)
-	fh = open(fileName)
-	fh.seek(0)
-	x = fh.readlines()
-	for i in range(0, len(x)):
-		if i not in prevLines:
-			f = regex.findall(names, x[i])
-			if len(f) >0:
-				print(f)
-				namedb.append(f)
-	return namedb
-
-ndb = findStrays(op[0], '/Volumes/Optibay-1TB/FrenchBur/2011/rawText/gouv2011.003V1.3.txt')
-
-flatten = lambda *n: (e for a in n
-    for e in (flatten(*a) if isinstance(a, (tuple, list)) else (a,)))
-
-
-ndb = (list(flatten(ndb)))
-
-
-nonNames = ["Télédoc","Télécopie","Site","Contact", "Groupe", "France","Cellule","Délégation","Mission","Département","Centre", "Télécom",
-			"Fonds", "Iles","Valletta","Bâtiment","Secteur"]
-
-for n in range(0, len(ndb)):
-	if ndb[n].split(" ")[0] not in nonNames:
-		print(ndb[n])
+	return(allLines,storage)
 
 
 
