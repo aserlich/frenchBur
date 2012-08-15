@@ -14,6 +14,7 @@ import scipy
 import datetime
 import pickle
 
+#deprecated
 
 #os.chdir('/Volumes/Optibay-1TB/FrenchBur/2011/output/')
 def firstPass(fileName):
@@ -23,14 +24,14 @@ def firstPass(fileName):
 	fh = open(fileName)
 	fh.seek(0)
 	x = fh.readlines()
-	allLines = [] #to store all lines in file analyzed and take advantage of nested scoping in python
+	evalLines = [] #to store all lines in file analyzed and take advantage of nested scoping in python
 	locs1 = [] #store locations of ranks to analze
 	for i in range(0, len(x)):
 		m = regex.search(r'•\s*(.*)\s*:\s*', x[i])
 		if m != None:
 			locs1.append(i)
 			#print(m.group(1))
-	allLines = list(locs1)
+	evalLines = list(locs1)
 	#part2 g over the file again
 	locs2 = []
 	garbage = []	
@@ -40,8 +41,8 @@ def firstPass(fileName):
 		if dot == 0 and colon1 == -1:
 			colon2 = x[i+1].find(':')
 			if colon2 >= 0:
-				allLines.extend([i, i+1])
-				#print(allLines)
+				evalLines.extend([i, i+1])
+				#print(evalLines)
 				#input("")
 				locs2.append(i+1)
 				#print(x[i].strip())
@@ -51,10 +52,12 @@ def firstPass(fileName):
 				print(''.join([x[i].strip(), x[i+1].strip()]), "IS A DAM ERROR")
 			#input("Press Enter to continue...")
 	print("PRELIMINARY PASSES DONE ON TO BUILDING THE DATABASE...\n Files in this pass will be pickled in current working directory")
-	evalLines, entries = getNames(allLines, locs1, locs2, x) #returns allLines, locs and the dictionary of entries [2]
+	evalLines, entries = getNames(evalLines, locs1, locs2, x) #returns evalLines, locs and the dictionary of entries [2]
 	print("GETTING PAGE NUMBERS")
-	#pns = getPN(fileName) #returns two list of page numbers and locations and a third as a dictionary [2]
-	#matchPNDict(output[2], pns[2]) #gives the dictionary of entrys and dictionary of page numbers
+	pns = getPN(fileName) #returns a list of dictionaries of page numbers and their assocatied locations
+	print("MATCHING PAGE NUMBERS")
+	matchPNDict(entries,pns) #gives the dictionary of entrys and dictionary of page numbers
+	makePages(pns, fileName)	
 	#output.extend(pns[2])
 	#output[0].extend(pns[0]) #add the pagenumber lines to the lines that have been evaluated
 	#rnow = datetime.date.today().strftime("%Y%m%d-%H-%M")
@@ -67,6 +70,7 @@ def firstPass(fileName):
 	output = {}
 	output['evalLines'] = evalLines
 	output['entries'] = entries
+	output['pageNums'] = pns
 	return(output)
 
 def emtefa(text, D, nextRow):
@@ -78,7 +82,7 @@ def emtefa(text, D, nextRow):
 	'''
 	levels = 0 #distance from original title
 	#needs to bu called recursively until no other material about thee individual is available
-	email = regex.compile(r'([a-zA-Z0-9+.-']+@[a-z0-9.-]+\.(?:fr|com|eu))', flag=regex.UNICODE)
+	email = regex.compile(r'([a-zA-Z0-9+.-]+@[a-z0-9.-]+\.(?:fr|com|eu))', flag=regex.UNICODE)
 	tel = regex.compile(r'Tél\.\s*:\s*\+*((?:[0-9]\s?){10,14})', flag=regex.UNICODE)
 	fax = regex.compile(r'Fax\.\s*:\s*((?:\+*[0-9]\s?){10,14})', flag=regex.UNICODE)
 	ecount = 0 
@@ -111,6 +115,7 @@ def emtefa(text, D, nextRow):
 			checkName(text, D, nextRow)
 		#print(D['name'])
 	#return(D)
+
 
 def checkName(nameText, D, nextRow):    # check whether material is a ph
 	"""
@@ -162,14 +167,13 @@ def checkName(nameText, D, nextRow):    # check whether material is a ph
 		input("Press Enter to continue...")
 	#return(D)
 
-
-def getNames(allLines, locs1, locs2, x):
+def getNames(evalLines, locs1, locs2, x):
 	"""
 	Calls appropriate helper functions to accurately parse name information
 	"""		
 	locs = locs1 + locs2
 	locs = sorted(locs)
-	storage = []	
+	entries = []	
 	keys = ['loc','name', 'nameFlag', 'rank','email','tel','fax', 'title']
 	for i in locs:
 		D= {key: None for key in keys}
@@ -183,12 +187,12 @@ def getNames(allLines, locs1, locs2, x):
 			D['rank'] = m[1].strip()
 		if len(m[2].strip()) == 0: #if there is only a rank
 		 	#assume name is on next line potentially with some other info
-			allLines.append(i+1)
+			evalLines.append(i+1)
 			emtefa(x[i+1], D, x[i+2])
 		else:  #name is on the same line
 			emtefa(m[2].strip(), D, x[i+1])
-		storage.append(D)
-	return(allLines,storage)
+		entries.append(D)
+	return(evalLines,entries)
 
 
 

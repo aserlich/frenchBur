@@ -6,9 +6,17 @@ Current issues
 	(e.g) Richard martinez Serge maurel -- 
  	Pascal LEMAIRE Benoît PIGUET Rachel CHANE SEE CHU François ARSAC Patrick FEVRIER Lionel MOISY-DE-CALA
 2. There are names where there are duel appointments and we only catpure the first name (e.g,Georges garioud and Nicolas MOLFESSIS)
-	We currently don't have Niclas MOLFESSIS
+	We currently don't have Niclas MOLFESSIS. Checking for Stray Names this appears to be the case on all 31 
+3. We have a missing period oftn with "gouvfr" instead of "gouv.fr"
+4. 
 
-Notes
+{'instMatch': None, 'pageNum': 79, 'nameOnly': 'Cabinet de la ministre', 'org': 'Aff.étrang.', 'fullName': 'Cabinet de la ministre (Aff. étrang.)', 'com': None}
+#no female
+{'org': 'Agri.alim.', 'fullName': 'Service des affaires financières, sociales et logistiques (Agri. Alim.)', 'pageNum': 253,}
+page number is wrong -- fix in the code -- shoudl be page number 107
+{'instMatch': None, 'pageNum': 173, 'nameOnly': "Service d'administration et de rémunération des personnels", 'org': 'Déf.', 'fullName': "Service d'administration et de rémunération des personnels (Déf.)", 'com': None}
+#should be 177
+
 1. There are a few multiple appointments, e.g, Sébastien SEGARRA. This shouldn't be a problem
 3. There are few officials with one name (e.g, GHESTEM on page 303 only has one name, VAEZ-OLIVERA on page 409 only has one name)
 	Just to document that that occures

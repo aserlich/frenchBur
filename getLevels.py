@@ -116,7 +116,68 @@ for q in range(0, len(xmod['indEntries'])):
 	res = res.append(row, ignore_index=True)
 
 res.to_csv('/Volumes/Optibay-1TB/FrenchBur/2011/output/frenchBurOrgs20120806V2.2.csv')
-		
+
+
+def getLevelsTOC(fileName):
+	"""
+	More directly parses an index file by collapsing it on one line an then parsing it. 
+	It omits the necessity to recursively grab lines to check for the end of the entry
+	This file is designed for two levels,
+	where a symbol separates the areas the belong to chunk 1
+	Could be more generic by passing regular expressions in as *args for an arbitrary number of hierachical levels n
+	and splitting on n+1 reu
+	"""
+	import functools
+	fh = open(fileName)
+	x = fh.readlines()
+	fh.close()
+	lev1 =[]
+	lev2=[]
+	oneLine = functools.reduce(lambda x,y: x +" " + y, [line[:-1] for line in x]) #collapse as one line this is a problem if there is no new line at the end
+	minsLev = oneLine.split("►") #split all of the highest levels
+	#print(minsLev)
+	num = regex.compile(r'([1-9][0-9]{1,2})\s*', regex.UNICODE | regex.VERSION1) #this is just ot return the match of an number
+	title = regex.compile(r'([[\p{Ll}\p{Lu}\s\'\-\(\)]--[\.]]+).*', regex.UNICODE | regex.VERSION1) #this is to return the title
+	getrec = regex.compile(r'([[\D]--[0-9]]+[1-9][0-9]{1,2}\s)', regex.UNICODE | regex.VERSION1) #this is to splot both the line and the title together
+	for i, stuff in enumerate(minsLev): #loop thourgh all the level 1 splits
+		allrecs =regex.split(getrec, stuff)
+		allrecs = filter(len, allrecs)
+		print(stuff)
+		#print(list(allrecs))
+		#input("")
+		for j, entries in enumerate(allrecs): #loop through all the level to nslits
+			L = {}
+			#print(entries)
+			if len(entries) > 3: #hacky, but omit form feed things
+				#print(entries)
+				if j == 0:
+					L['pageNum'] = int(regex.search(num, entries).group(1).strip())
+					L['org'] = regex.search(title, entries).group(1).strip()
+					lev1.append(L)
+				else:
+					L['pageNum'] = int(regex.search(num, entries).group(1).strip())
+					L['org'] = regex.search(title, entries).group(1).strip()
+					L['lev1Org'] = lev1[-1]['org']
+					lev2.append(L)
+			else:
+				print("Look at this ENTRY", entries)
+	levs = {}
+	levs['lev1'] = lev1
+	levs['lev2'] = lev2
+	return(levs)
+
+
+			
+#keys = ['pageNum','org', 'Lev1Org']
+res = pd.DataFrame(columns=None)
+for q in range(0, len(test['lev2'])):
+	row = pd.DataFrame((test['lev2'][q]), index = [q])
+	res = res.append(row, ignore_index=True)
+	
+	
+res.to_csv('/Volumes/Optibay-1TB/FrenchBur/2011/output/frenchBurLev2Orgs20120813V1.0.csv')
+
+
 
 #current errors
 #Agro-Sup Dijon not found
