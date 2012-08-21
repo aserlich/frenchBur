@@ -16,6 +16,7 @@ def getPages(fileName):
 	Currently implemented for 2011. Will be made more generic as volum
 	"""
 	import functools
+	import operator
 	fh = open(fileName)
 	x = fh.readlines()
 	pnO = regex.compile(r'#\s?([1-9][0-9]{0,2})', flag = regex.UNICODE) #for finding the odd pages
@@ -52,9 +53,9 @@ def getPages(fileName):
 			else:
 				page['startLoc'] = start
 				start = page['endLoc'] + 1
-	def addPages(pnEntries):
+	def addPages(pnEntries): #actually adds the content of the page _ am snore we want to do this
 		for i, page in enumerate(pnEntries):
-			page['content'] = functools.reduce(lambda x,y: x +" " + y, [line[:-1] for line in x[page['startLoc']:page['endLoc']]]) 
+			page['content'] = functools.reduce(lambda x,y: x +" " + y, [line for line in x[page['startLoc']:page['endLoc']]]) 
 	addEndLoc(pnEntries)
 	addPages(pnEntries)
 	return(pnEntries)
