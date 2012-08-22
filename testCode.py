@@ -9,8 +9,8 @@ path = str('/Volumes/Optibay-1TB/FrenchBur/2011/rawText/')
 #1
 # The fist step is to get a set of dictionaries with the contents of each page
 #-Done with getPages()
-#the document must be saved with option to preserve pagebreaks in Abby Lingvo Checked
-pnEntries = getPages(path + 'gouv2011.003V3.1.txt')	
+#the document must be saved with option to preserve pagebreaks in Abby Lingvo checked
+pnEntries = getPages(path + 'gouv2011.003V3.1LineBreaks.txt')	
 
 #2
 #The next step is to get a set of index entries
@@ -56,7 +56,12 @@ myptest = feedData(beEntriesT2)
 # 	res = res.append(row, ignore_index=True)
 # 
 # res.to_csv('/Volumes/Optibay-1TB/FrenchBur/2011/output/frenchBur20120812V2.21.csv')
-
+for i in range(len(myptest)):
+	print(myptest[i]['indEntries'],"\n",
+	myptest[i]['org'], "ORG", "\n" ,
+	myptest[i]['orgData'], "ORGDATA", "\n",
+	myptest[i]['conten'][0:20], "ORGDATA", "\n")
+	input("ENTER")
 
 ###############-----------------------------------------------------------------------------------------
 # orgs = [item['org'] for item in lev1]
