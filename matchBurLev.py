@@ -22,7 +22,13 @@ def matchBurLev(pnEntries, indexEntries):
 			if entry['pageNum'] == page['pageNum'] and entry['pageNum'] in range(minVal, maxVal+1): 
 				print("Got PN")
 				asRE = regex.escape(entry['org'].strip(), regex.UNICODE)
-				pattern = "(" + asRE +")"+ '{e<=3}' 
+				words = asRE.split(" ")
+				words = [word +regex.escapte("\n?") for word in words]
+				asRE = ' '.join(words)
+				pattern = "(" + asRE +")"+ '{e<=3}'
+				print(pattern)
+				#asRE = regex.escape(entry['org'].strip(), regex.UNICODE)
+				#pattern = "(" + asRE +")"+ '{e<=3}' 
 				print(pattern)
 				instMatch = regex.search(pattern, page['content'],regex.ENHANCEMATCH | regex.BESTMATCH | regex.BESTMATCH | regex.IGNORECASE | regex.UNICODE | regex.V1)
 				if instMatch != None:
