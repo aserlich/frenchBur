@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+'#!/usr/bin/env python
 # encoding: utf-8
 """
 matchBurLev.py
@@ -17,16 +17,13 @@ def matchBurLev(pnEntries, indexEntries):
 	import functools
 	minVal = min(item['pageNum'] for item in pnEntries) #lowest page number evaluated
 	maxVal = max(item['pageNum'] for item in pnEntries) #highest page number evaluated
+	garbage =[]
 	for e, entry in enumerate(indexEntries): #for every entry in the index
 		for p, page in enumerate(pnEntries): #for every page in the book
 			if entry['pageNum'] == page['pageNum'] and entry['pageNum'] in range(minVal, maxVal+1): 
 				print("Got PN")
-				asRE = regex.escape(entry['org'].strip(), regex.UNICODE)
-				words = asRE.split(" ")
-				words = [word +regex.escapte("\n?") for word in words]
-				asRE = ' '.join(words)
-				pattern = "(" + asRE +")"+ '{e<=3}'
-				print(pattern)
+				words = "\n? ".join(entry['org'].strip().split(" ")) #allow regex to match accross multiple lines
+				pattern = r"(" + words +")"+ '{e<=3}'
 				#asRE = regex.escape(entry['org'].strip(), regex.UNICODE)
 				#pattern = "(" + asRE +")"+ '{e<=3}' 
 				print(pattern)
@@ -49,7 +46,8 @@ def matchBurLev(pnEntries, indexEntries):
 					# entry['end'] = None
 				else:
 					print(pattern, "did not match and was removed") 
-					indexEntries.pop(e)
+					print(indexEntries[e])
+					garbage.append(indexEntries.pop(e))
 					# entry['instMatch'] = None
 					# 			entry['span'] = None
 					# 			entry['end'] = None
