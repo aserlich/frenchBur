@@ -28,15 +28,15 @@ indices = getLevelsIndex('/Volumes/Optibay-1TB/FrenchBur/2011/rawText/indices201
 #this maybe potentially be recursively for each level of the bureacracy but I have found it impossible fo far
 #insread we just match for all levels and combined them
 burEntries = matchBurLev(pnEntries, lev1)
-burEntriesIndex = matchBurLev(pnEntries, indices)
-be = sorted(burEntries +burEntriesIndex, key=operator.itemgetter('pageNum'))
+burEntriesIndex = matchBurLev(pnEntries, indices) #this doesn't work the first time around... not sure why but when the element are popped it workds
+be = sorted(burEntries +burEntriesIndex, key=operator.itemgetter('pageNum', 'end')) #sorted by both so they get called properly by parseOrg
 
 #4
 #The next step is to get all of the text associated with apprpriate bureaucratic organization.
 #Maybe this will be need to be called recursively if organizations are nested. 
 #I believe there maybe a better strategy to detect level after all records are created because there is no abstractable code I can do that with
-burEntries2 = parseOrg(pnEntries, burEntries)
-burEntries[0] #yields the president
+#burEntries2 = parseOrg(pnEntries, burEntries)
+#burEntries[0] #yields the president
 #combined ministerial level data nd index data
 beEntriesT2 = parseOrg(pnEntries, be)
 
@@ -47,6 +47,7 @@ beEntriesT2 = parseOrg(pnEntries, be)
 #Parses the data and actually returns parsed records
 
 myptest = feedData(beEntriesT2)
+get
 # demonstration of text to output csv
 # op2['entries']
 # keys = ['loc','name', 'nameFlag', 'rank','email','tel','fax', 'title']
@@ -60,7 +61,7 @@ for i in range(len(myptest)):
 	print(myptest[i]['indEntries'],"\n",
 	myptest[i]['org'], "ORG", "\n" ,
 	myptest[i]['orgData'], "ORGDATA", "\n",
-	myptest[i]['conten'][0:20], "ORGDATA", "\n")
+	myptest[i]['content'][0:200], "ORGDATA", "\n")
 	input("ENTER")
 
 ###############-----------------------------------------------------------------------------------------
