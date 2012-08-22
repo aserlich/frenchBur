@@ -21,7 +21,7 @@ def getPages(fileName):
 	x = fh.readlines()
 	pnO = regex.compile(r'#\s?([1-9][0-9]{0,2})', flag = regex.UNICODE) #for finding the odd pages
 	pnE = regex.compile(r'^\s?([1-9][0-9]{0,2})\s?#', flag = regex.UNICODE) #for finding the even pages
-	header = regex.compile(r'(?:◄|►)', regex.UNICODE | regex.V1)
+	header = regex.compile(r'(?:(?:◄|►)|(?:Administrations\ centrales){e<=2})', regex.UNICODE | regex.V1)
 	#pnE = regex.compile(r'', flag = regex.UNICODE)
 	#pns =  []
 	#locs = []
