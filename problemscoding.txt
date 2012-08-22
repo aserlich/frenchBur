@@ -22,3 +22,11 @@ page number is wrong -- fix in the code -- shoudl be page number 107
 	Just to document that that occures
 
 
+#NEW DATA Porblems
+
+Maryvonne CHAMBODUC DE SAINT -- last name is cut
+some names still have commas attached
+
+need to check for stray names before recurse on orgs
+need to fix titles search
+the pasting down of suborgs appears to be rolling over some data -- se CarOle VEYRAT

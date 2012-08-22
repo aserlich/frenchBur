@@ -126,8 +126,9 @@ index.to_csv('/Volumes/Optibay-1TB/FrenchBur/2011/output/frenchBurOrgs20120806V3
 			
 #keys = ['pageNum','org', 'Lev1Org']
 res = pd.DataFrame(columns=None)
-for q in range(0, len(test['lev2'])):
-	row = pd.DataFrame((test['lev2'][q]), index = [q])
+for q in range(0, len('lev2')):
+	row = pd.DataFrame((lev2[q]), index = [q])
+	print(row)
 	res = res.append(row, ignore_index=True)
 	
 	

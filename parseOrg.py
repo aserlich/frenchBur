@@ -35,7 +35,7 @@ def parseOrg(pnEntries, burEntries):
 						bur['content'] = bur['content'] + pnEntries[p]['content'][start:burEntries[b+1]['span'][0]] #on one page
 						#print(bur['content'])
 					else:
-						bur['content'] = bur['content'] + pnEntries[p]['content'][bur['span'][0]:len(pnEntries[p]['content'])-1] #if not get the page from its start to the end
+						bur['content'] = bur['content'] + pnEntries[p]['content'][bur['span'][0]:len(pnEntries[p]['content'])] #if not get the page from its start to the end
 						start = 0
 						distance = distance-1
 						p += 1
