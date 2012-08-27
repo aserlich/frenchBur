@@ -18,108 +18,140 @@ def feedData(entries):
 
 
 def getData(content, entry):
-	names = regex.compile(r"""(^
+	names = regex.compile(r"""(^\s?
+							(?:
 								(?:
-									(?:[\p{Lu}]
-										(?:[\p{Ll}]{2,15}){s<=2}
-										(?:[\p{Pd}][\p{Lu}][\p{Ll}]+\ |\ ){s<=1}
+								(?!Secteur|Mission|Bureau|Télédoc|Télécopie|Site|Contact|Groupe|France 	#negative look behind for these words
+									|Cellule|Délégation|Mission|Département|Centre|Télécom|Fonds|Iles
+									|Valletta|Bâtiment|Secteur|Projet|Sous-direction|Section|Pôle
+								)
+								(?:[\p{Lu}] 										#first letter of first name is capitalized
+									(?:[\p{Ll}]{2,15}){s<=1}						#then more letters all lowercase 
+									(?:[\p{Pd}][\p{Lu}](?:[\p{Ll}]+){s<=2}\s|\s)	#then the possibility of a hyphenated name or just a space
+								)
+								(?:(?:
+									(?:	(?!MINISTRE|AUTORITÉ|ÉTABLISSEMENTS|SECRÉTAIRE|ORGANISMES)										#Begin last name
+									(?:[\p{Lu}]										#last name starts with a cap
+										(?:[[\p{Pd}\p{Lu}\']--[,]]{3,23}){s<=1}		#then either an apostrophe uppercase letters or dashes
+									)|(?:DE|DI|DA|DU|LE|LA)								#or one of the two letter names
+								),?[\s\n]\s?){1,6})									#end last name and say it can be repeated 1 to 6 times		
+							)														#end the name	
+						|N\.\.\.)													#there can also be a N...
+					)""", regex.VERBOSE + regex.UNICODE + regex.V1 + regex.MULTILINE) #multline used to capture multiple records
+	title = regex.compile(r"""
+								^,?\ ?(												#can start with a comma which sometimes separates from a name needs to be cleaned later
+									(?:
+										(?:[\p{Ll}][[\p{Ll}\-']--[@:\.]]{1,})\s		#a word with no caps or garbage
 										(?:
 											(?:
-												(?:[\p{Lu}]
-													(?:\'|[\p{Lu}]{2,15}){s<=1}
-													(?:[\p{Pd}]['\p{Pd}\p{Lu}]{2,15})?
+												(?:[\p{Ll}][[\p{Ll}\-']--[@:\.]]{1,})|
+												(?:à|a|Affaires|Banque\ de\ France|Cour|CTC|DGCCRF|d\'État|France				#exceptions of capitalized words
+												|l\'iNSEE|l\'INSEE
+												|l\'Assemblée|l\'Académie|l\'Enseignement|l'État
+												|Paris|République|TPE|Trésor
 												)
-											)|
-											(?:DE|DI|DA|DU|LE|LA)
-										)
-										(?:
-											(?:
-												(?:\s[\p{Lu}])
-												(?:\'|[\p{Lu}]{2,3})
-												(?:[\'\p{Pd}\p{Lu}]{0,10})
-											)|
-											(?:\ DE|\ DU|\ LE|\ LA)
-										){0,5}
+										),?[\ \n]{1}\s?){0,12}					#after each word there can be a comma followed by either space or a line break
 									)
-									|N\.\.\.)
-								)[\s]?""", regex.VERBOSE | regex.UNICODE |regex.V1) #comma moved to title
-	title = regex.compile(r"(^(?:(?:,?[\p{Ll}']{1,}[\s,])+)\n?)", regex.UNICODE) #dashes are still metacharacters inside classes
-	email = regex.compile(r'^(?:([a-zA-Z0-9+.\-]+@[a-z0-9.\-]+\.(?:fr|com|eu|org)){i<=2})', regex.UNICODE |regex.V1) #insertions to deal with blank spaces or linebreaks
+								   )""", regex.UNICODE + regex.VERBOSE +regex.V1)
+	#insertions to deal with blank spaces or linebreaks and period at the end is option as often not caught
+	email = regex.compile(r'^(?:([a-zA-Z0-9+.\-\']+@[a-z0-9.\-]+\.?(?:fr|com|eu|org|net)){i<=2})', regex.UNICODE |regex.V1) 
 	tel = regex.compile(r'^(?:Tél\.?\s*:\s*\+*((?:[0-9]\s?){10,14}){e<=1})', regex.UNICODE | regex.V1)
 	fax = regex.compile(r'^(?:Fax\s*:\s*((?:\+*[0-9]\s?){10,14}){e<=1})', regex.UNICODE | regex.V1)
-	regexes = [title, email,tel, fax]
+	regexes = [("title",title), ("email", email), ("tel", tel), ("fax",fax)] #a list of tuples
 	#print(regexes)
 	#orgData = indEntries[0] 
 	entries =[]
-	indEntries = content.split('•') #parse by individual entry before the first split will be org level data
+	indEntries = content.split('•') #parse by individual entry (or everyone with the same position) before the first split will be org level data
 	entry['orgData'] = indEntries[0]
 	for e in range(1, len(indEntries)):
-		dentry = {}
+		keys = ['email','tel','fax', 'title']
+		dentry= {key: [] for key in keys}
 		allInfo = indEntries[e].split(':', 1) #split on the first semicolon before will be the rank
-		print(allInfo)
-		parsed =[None, None, None, None, None, None] #set up extra data spots could be used 
+		print(allInfo, "ALL INFO")
+		
 		if len(allInfo) ==2:
 			dentry['rank'] = allInfo[0].strip()
 			otherInfo = names.split(allInfo[1].lstrip()) #get the rank
+			print(otherInfo, "whose LENGTH is:", len(otherInfo))
+			#input("")
+			
+			if len(otherInfo) == 3: #if we got a proper name split
+				dentry['name'] = otherInfo[1].strip()
+				otherInfo = otherInfo[2].lstrip()	
+				matchCoord(regexes, dentry, otherInfo)
+				entries.append(dentry)
+				
+			elif len(otherInfo) == 1: # we didn't sucssefully split
+			#For error checking of likely names but ones outside the tolerance threshold given by the regex but I still want to parse
+				potentialName = otherInfo[0].split("\n",1)[0].split(" ")	
+				if len(potentialName) <= 2:
+					dentry['name'] = ' '.join(potentialName)
+					dentry['nameFlag'] = 1
+					potentialOtherInfo = otherInfo[0].split("\n",1)
+					if len(potentialOtherInfo) == 2:
+						matchCoord(regexes, dentry, potentialOtherInfo[1])
+				entries.append(dentry)
+				
+			elif len(otherInfo) > 3:  #we have multiple names
+				print('LONG SPLIT')
+				##DEAL with the first entry
+				dentry['name'] = otherInfo[1].strip()
+				if names.match(otherInfo[2]) == None: #if the next cell isn't a name
+					matchCoord(regexes, dentry, otherInfo[2].lstrip())
+					rangeStart = 3
+				else: 
+					rangeStart ==2
+				#now for all other entries
+				for stray in range(rangeStart, len(otherInfo)): #either 2 or 3 depending
+					if names.match(stray) != None: #if the next element isn't name
+						newEntry= {key: [] for key in keys}
+						newEntry['rank'] = dentry['rank']
+						newEntry['name'] = stray.strip() #this means there was no material between the two names
+					else:
+							matchCoord(regexes, newEntry, extras[1].lstrip())
+							entries.append(newEntry)
+				entries.append(dentry)
+				input(" ")
+			else: # we didn't sucssefully split
+				print(otherInfo, "IS AN ERROR BECAUSE THERE IS NO NAME")
+				dentry['nameFlag'] = 2
+				dentry['noParse'] = otherInfo #shove all the info about the record into 1 string
+				
 		else:
 			print("There is a problem with rank parsing:\n", allInfo, "\n",
 			content)
 			otherInfo = allInfo
-			input("ENTER")
-		print(otherInfo)
-		def matchCoord(regexes, parsed, otherInfo):
-				for r, myreg in enumerate(regexes):
-					print(myreg)
-					otherInfo = myreg.split(otherInfo)
-					print(otherInfo, "HERE")
-					if len(otherInfo) == 3:
-						print("r =", r, otherInfo)
-						parsed[r] = otherInfo[1].strip()
-						otherInfo = otherInfo[2].strip()
-					else:
-						otherInfo = otherInfo[0]
-						print(r, "=R-VALUE", )
-						if r == 3: #if it's the last pass
-							if len(otherInfo) > 2:
-								dentry['remainder'] = otherInfo #this needs ot be expanded to do a bit of testing for being a lower level of bureaucracy on the next record		
-		if len(otherInfo) == 3: #if we got a proper name split
-			dentry['name'] = otherInfo[1].strip()
-			otherInfo = otherInfo[2].lstrip()	
-			matchCoord(regexes, parsed, otherInfo)
-			indEntries.append(dentry)
-		elif len(otherInfo) == 1: # we didn't sucssefully split
-			#For error checking of likely names but ones outside the tolerance threshold given by the regex but I still want to parse
-			potentialName = otherInfo[0].split("\n",1)[0].split(" ")	
-			if len(potentialName) <= 2:
-				dentry['name'] = ' '.join(potentialName)
-				dentry['nameFlag'] = 1
-				potentialOtherInfo =otherInfo[0].split("\n",1)
-				if len(potentialOtherInfo) == 2:
-					matchCoord(regexes, parsed, potentialOtherInfo[1])
-			else:
-				print(otherInfo, "IS AN ERROR BECAUSE THERE IS NO NAME")
-				dentry['nameFlag'] = 2
-				dentry['noParse'] = otherInfo #shove all the info about the record into 1 string
-		print(parsed)
-		dentry['title'] =parsed[0]
-		dentry['email'] = parsed[1]
-		dentry['phone'] = parsed[2]
-		dentry['fax'] = parsed[3]
-		
-		entries.append(dentry)
-	return(entries)
+			#input("ENTER")
+	return(entries)	
 
+x= getData(beEntriesT2[12]['content'], beEntriesT2)
+
+def matchCoord(regexList, recordEntry, info):
+	import regex
+	info = info
+	for r, myreg in enumerate(regexList):
+		splitInfo = myreg[1].split(info.lstrip())
+		if len(splitInfo) == 3:
+			print(myreg[0], splitInfo[1].lstrip())
+			recordEntry[myreg[0]].append(splitInfo[1].strip())
+			print(info, "HERE AFTER STRIP", "and R =", r)
+			#matchCoord([myreg], recordEntry, splitInfo[2]) #call recursively to get double phone number or emails or faxes NEED TO MAKE WORK PROPERL
+			info = splitInfo[2].lstrip()
+	if info:
+		recordEntry['remainder'] = info
+		print("REMAINDER", recordEntry['remainder']) #this needs ot be expanded to do a bit of testing for being a lower level of bureaucracy on the next record		
 
 def getSubOrgData(entries):
-	test = entries[:]
+	import copy
+	test = copy.deepcopy(entries) #make a copy
 	for e, entry in enumerate(test):
 		for i, indEntry in enumerate(entry['indEntries']):
-			if i >0 and e != len(test)-1:  #and its not the last entry
+			if e != len(test)-1:  #if its not the last entry
 				if 'remainder' in indEntry.keys():
 					orgParse = recurseRemainder(indEntry['remainder'])
 					if orgParse[0] != None and len(orgParse[0])>0:
-						if i == len(entry['indEntries'])-1:
-							#print(i, len(indEntry))
+						if i == len(entry['indEntries'])-1: #if its the last individual entry, data goes with next entry
+							#pri	nt(i, len(indEntry))
 							print(e)
 							test[e+1]['indEntries'][0]['subOrg'] = orgParse[0]
 							test[e+1]['indEntries'][0]['subOrgData'] = orgParse[1]
@@ -140,45 +172,18 @@ def getSubOrgData(entries):
 
 
 def recurseRemainder(remainder, nonOrg = "", orgMatch=None):
-	org = regex.compile(r"(^[\p{Lu}](?:[[\p{Ll}\p{Lu}\-\'\(\),\s]--[\d:@\.]]+$))", regex.UNICODE + regex.V1)
+	org = regex.compile(r"(^[\p{Lu}](?:[[\p{Ll}\p{Lu}\-\'\(\),\s]--[\d:@\.]]+$))", regex.UNICODE + regex.V1) #but sometimes there are : and numbers but usually just one
 	if org.match(remainder) : #if it just has org details
 		orgMatch = org.match(remainder).group(1) #assign it to the org
 		print(orgMatch, "ORGMATCH", nonOrg)
 		return(orgMatch, nonOrg)
 	elif len(remainder.rsplit("\n",1)) ==2:
-		#while len(remainder.split("\n")) >1:
-			#print(remainder.split("\n"), "LENGTH:", len(remainder.split("\n")),remainder.rsplit("\n")[0])
 			nonOrg = nonOrg + remainder.rsplit("\n",1)[1]
-			#print(nonOrg)
-			#print(remainder)
 			return(recurseRemainder(remainder = remainder.rsplit("\n",1)[0], nonOrg = nonOrg)) #need to return it here
-			#print(nonOrg)
 	else: 
 		orgMatch = None
 		return(orgMatch, nonOrg)
-	#print("GODDAMN", orgMatch)
-	
 
-index = pd.DataFrame(columns=None)
-i=1
-for q, query in enumerate(anotherTest):
-	for r, record in enumerate(query['indEntries']):
-		myRow = record
-		myRow['org'] = query['org']
-		if 'ministry' in query.keys():
-			myRow['ministry'] = query['ministry'] 
-		print(myRow)
-		row = pd.DataFrame((myRow), index = [i])
-		index = index.append(row, ignore_index=True)
-		print(row)
-		i+=1
-
-index.to_csv('/Volumes/Optibay-1TB/FrenchBur/2011/output/frenchBur20120821.csv')
-
-
-
-
-				#indEntry[i+1]['remainder']
 			#have to attached it to the right entry
 # mt = getData(ltest)		
 # rt = getData(rtest)	
