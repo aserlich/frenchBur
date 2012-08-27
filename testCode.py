@@ -4,24 +4,32 @@
 Demonstration code for a suite functions to parse bibliographic data from books
 """
 import os
+import pandas as pd
+import functools
+import operator
+import copy
+import regex
 path = str('/Volumes/Optibay-1TB/FrenchBur/2011/rawText/')
 
 #1
 # The fist step is to get a set of dictionaries with the contents of each page
 #-Done with getPages()
 #the document must be saved with option to preserve pagebreaks in Abby Lingvo checked
-pnEntries = getPages(path + 'gouv2011.003V3.1LineBreaks.txt')	
+pnEntries = getPages(path + 'gouv2011.003V3.1LineBreaksParagraphSeparator.txt')	
 
 #2
 #The next step is to get a set of index entries
 #Entries could be from the table of contents, which currently returns a dictionary with two levels
 #It can be done from the index as well
 #indices should be saved with no headers or footers for proper parsing
+#unfortunately there are long and short names for the ministry and this does not catch the whole name
 toc = getLevelsTOC(path + "toc2011.001V1.2.txt")
-lev1 = toc['lev1']
+lev1 = copy.deepcopy(toc['lev1']) #there is a different between a shallow and a deep copy. Shallow allows you to add to mutable objects
 lev2 = toc['lev2']
-indices = getLevelsIndex('/Volumes/Optibay-1TB/FrenchBur/2011/rawText/indices2011.007_indexadministrationcentralesV1.4.txt')
 
+#currently I through out two indices because they don't match, but could fix that. 
+indices = getLevelsIndex('/Volumes/Optibay-1TB/FrenchBur/2011/rawText/indices2011.007_indexadministrationcentralesV1.4.txt')
+indicesBup = copy.deepcopy(indices)
 #3
 #The next step is to find the bureacratic organizations' names in the text
 #this is done with matchBurLev()
@@ -29,8 +37,11 @@ indices = getLevelsIndex('/Volumes/Optibay-1TB/FrenchBur/2011/rawText/indices201
 #insread we just match for all levels and combined them
 burEntries = matchBurLev(pnEntries, lev1)
 burEntriesIndex = matchBurLev(pnEntries, indices) #this doesn't work the first time around... not sure why but when the element are popped it workds
+burEntriesIndexBup = copy.deepcopy(burEntriesIndex)
+#burEntriesIndex = copy.deepcopy(burEntriesIndexBup)
 be = sorted(burEntries +burEntriesIndex, key=operator.itemgetter('pageNum', 'end')) #sorted by both so they get called properly by parseOrg
-
+beBup = copy.deepcopy(be)
+#be = copy.deepcopy(beBup)
 #4
 #The next step is to get all of the text associated with apprpriate bureaucratic organization.
 #Maybe this will be need to be called recursively if organizations are nested. 
@@ -44,10 +55,13 @@ beEntriesT2 = parseOrg(pnEntries, be)
 #5
 #once all of the levels o bureacracy is matched - the remaining text will be parsed and old functions will be refactored for this
 #to yield appropriate fields for appropriate levels. 
-#Parses the data and actually returns parsed records
+#Parses the data and actually retlevurns parsed records
 
 myptest = feedData(beEntriesT2)
-get
+
+#this is a deep copy so i can compare
+anotherTest = getSubOrgData(myptest)
+
 # demonstration of text to output csv
 # op2['entries']
 # keys = ['loc','name', 'nameFlag', 'rank','email','tel','fax', 'title']
@@ -63,6 +77,99 @@ for i in range(len(myptest)):
 	myptest[i]['orgData'], "ORGDATA", "\n",
 	myptest[i]['content'][0:200], "ORGDATA", "\n")
 	input("ENTER")
+
+###output individual level records
+index = pd.DataFrame(columns=None)
+i=1
+for q, query in enumerate(anotherTest):
+	for r, record in enumerate(query['indEntries']):
+		myRow ={}
+		myRow['rank'] = record['rank']
+		
+		myRow['email'] = str(record['email'])
+		myRow['title'] = str(record['title'])
+		myRow['tel'] = str(record['tel'])
+		myRow['fax'] = str(record['fax'])
+		myRow['org'] = query['org']
+		if 'remainder' in record.keys():
+			myRow['remainder'] = record['remainder']
+		if 'name'  in record.keys():	
+			myRow['name'] = record['name']
+		if 'noParse'  in record.keys():	
+			myRow['noParse'] = record['noParse']
+		if 'subOrg'  in record.keys():	
+			myRow['subOrg'] = record['subOrg']
+		if 'subOrgData'  in record.keys():	
+			myRow['subOrgData'] = record['subOrgData']
+		if 'ministry' in query.keys():
+			myRow['ministry'] = query['ministry'] 
+		if 'level' in query.keys():
+			myRow['level'] = query['level'] 
+		print(myRow)
+		row = pd.DataFrame((myRow), index = [i])
+		index = index.append(row, ignore_index=True)
+		print(row)
+		i+=1
+
+#index.to_csv('/Volumes/Optibay-1TB/FrenchBur/2011/output/frenchBur20120825V1.1.csv')
+ #index.to_csv('/Volumes/Optibay-1TB/FrenchBur/2011/output/frenchBur20120825V1.2.csv')
+
+# if it is the first record it can still have the next records data
+#need to call each thing multiple time -- email twice -- DONE but doesn work
+#doesn't work on last record
+#title now doesn't match with comma
+#title doesn't match across lines
+, contre-amiral
+ Sous-direction Pilotage
+ des ressources humaines militaires
+ et civiles
+#Doesnot match tell and fax
+Jean-Marie delarue
+Tél. : 01 53 38 47 80 Fax : 01 42 38 85 32
+##output remaindertest level records
+remainder = pd.DataFrame(columns=None)
+i=1
+for q, query in enumerate(myptest):
+	for r, record in enumerate(query['indEntries']):
+		myRow = record
+		myRow['org'] = query['org']
+		print(myRow)
+		row = pd.DataFrame((myRow), index = [i])
+		remainder = remainder.append(row, ignore_index=True)
+		print(remainder)
+		i+=1
+
+remainder.to_csv('/Volumes/Optibay-1TB/FrenchBur/2011/output/frenchBur20120821REMAINDERTEST.csv')
+
+###
+for e, entry in enumerate(beEntriesT2):
+	if entry['org'] =="Direction de l'énergie":
+		print(entry['content'],"ORG=====" ,entry['org'], beEntriesT2[e+1]['org'], "NUMBER", e)
+
+for e, entry in enumerate(beEntriesT2):
+	if entry['org'] =="Service hydrographique et océanographique de la marine (SHOM)":
+		print(entry['content'],"ORG=====" ,entry['org'], beEntriesT2[e+1]['org'], "NUMBER", e)
+
+m
+print(beEntriesT2[471]['content'])
+print(beEntriesT2[472]['span'])
+print(beEntriesT2[472]['pageNum'])
+
+
+
+for e, entry in enumerate(anotherTest):
+	if entry['org'] =="Cabinet du ministre":
+		print(entry['content'],"ORG=====" ,entry['org'],e)
+		input("ENTER")
+
+for entry in pnEntries:
+	if entry['pageNum'] == 235:
+		print(entry['content'], "HEADER: ", entry['header'])
+		
+for entry in pnEntries:
+	if entry['pageNum'] == 236:
+		print(entry['content'], "HEADER: ", entry['header'])
+		
 
 ###############-----------------------------------------------------------------------------------------
 # orgs = [item['org'] for item in lev1]

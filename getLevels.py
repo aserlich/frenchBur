@@ -34,7 +34,7 @@ def getLevelsTOC(fileName):
 	num = regex.compile(r'([1-9][0-9]{1,2})\s*', regex.UNICODE | regex.VERSION1) #this is just to return the match of a number
 	title = regex.compile(r'([[\p{Ll}\p{Lu}\s\'\-\(\)]--[\.]]+).*', regex.UNICODE | regex.VERSION1) #this is to return the title
 	getrec = regex.compile(r'([[\D]--[0-9]]+[1-9][0-9]{1,2}\s)', regex.UNICODE | regex.VERSION1) #this is to splot both the line and the title together
-	for i, stuff in enumerate(minsLev): #loop thourgh all the level 1 splits
+	for i, stuff in enumerate(minsLev): #loop through all the level 1 splits
 		allrecs =regex.split(getrec, stuff)
 		allrecs = filter(len, allrecs)
 		print(stuff)
@@ -48,6 +48,7 @@ def getLevelsTOC(fileName):
 				if j == 0:
 					L['pageNum'] = int(regex.search(num, entries).group(1).strip())
 					L['org'] = regex.search(title, entries).group(1).strip()
+					L['level'] = 0
 					lev1.append(L)
 				else:
 					L['pageNum'] = int(regex.search(num, entries).group(1).strip())
@@ -81,7 +82,7 @@ def getLevelsIndex(fileName):
 	#print(minsLev)
 	num = regex.compile(r'([1-9][0-9]{2}|[4-9][0-9])\s*', regex.UNICODE | regex.VERSION1) #this is just to return the match of a number
 	title = regex.compile(r'(^\s*.*\)).*', regex.UNICODE | regex.VERSION1) #this is to return the title
-	getrec = regex.compile(r'\s*([\p{Lu}\p{Ll}\']{2}.*?(?:[1-9][0-9]{2}|[4-9][0-9])\s*)', regex.UNICODE | regex.VERSION1 | regex.DOTALL) #this is to splot both the line and the title together
+	getrec = regex.compile(r'\s*([\p{Lu}\p{Ll}\']{2}.*?(?:[1-9][0-9]{2}|[4-9][0-9])\s*)', regex.UNICODE | regex.VERSION1 | regex.DOTALL) #this is to spot both the line and the title together
 	mnstry = regex.compile(r"\(((([\p{Lu}]{0,3}|[\p{Ll}]{1}])[\p{Ll}]{0,8}\..*)|PM|CE)\)", flag=regex.UNICODE)
 	cmte = regex.compile(r"\(+?(([\p{Lu}]{3})(?!\.).*?)\)+?", flag=regex.UNICODE) #still doesn't capture typo of ECO.
 	bo = regex.escape("SCBCM", regex.UNICODE)
@@ -102,11 +103,10 @@ def getLevelsIndex(fileName):
 				entry['org'] = 	regex.split(mnstry, entry['orgFull'])[0].strip()
 				entry['ministry'] = mnstry.search(entry['orgFull']).groups(1)[0].replace(' ','').capitalize()
 				index.append(entry)
-				def specialCase(entry):
+				def specialCase(entry): #deal with the budget office
 					if budgetOffice.search(entry['org']) !=None:
 						entry['level'] = 0 
 						print(entry)
-						input(" ")
 				specialCase(entry)
 			except NameError:
 				pass

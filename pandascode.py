@@ -145,6 +145,12 @@ rtest = beEntriesT2[200]['content']
 ltest = beEntriesT2[400]['content']
 
 
+x= getData(beEntriesT2[12]['content'], beEntriesT2[12])
+x= getData(beEntriesT2[448]['content'], beEntriesT2[448])
+x= getData(beEntriesT2[438]['content'], beEntriesT2[438]) #problems with splitting titles
+x=getData(beEntriesT2[90]['content'], beEntriesT2[90]) # problem with capitalized ministries
+
+
 title = regex.compile(r"(^(?:(?:[\p{Ll}']{1,}\s)+)\n?)", regex.UNICODE)
 
 # title = regex.compile (r"""(^(?:(?:[\p{Ll}']{1,}\s)+\n)
@@ -152,39 +158,63 @@ title = regex.compile(r"(^(?:(?:[\p{Ll}']{1,}\s)+)\n?)", regex.UNICODE)
 # 						)""", regex.UNICODE | regex.V1 |regex.VERBOSE)
 
 testStrings = ["ingénieur général de l'armement Organismes relevant du chef d'état-major des armées\n", 
-				"ingénieur général de l'armement\n Organismes relevant du chef d'état-major des armées\n"]
+				"ingénieur général de l'armement\n Organismes relevant du chef d'état-major des armées\n",
+				", général de corps\n aérien\n yourmom@gmail.fr\n Fax: 01 02 03 04 05 06", "ingénieur général des ponts, des eaux\n et des forêts\n Tél. : 01 40 65 12 41",
+				"conseiller des affaires étrangères hc\n Bureau juridique et finance"]
 
 nameStrings = ['Evelyne LIDOVE-THOMMERET, docteur evelyne.lidove-thommeret@pm.gouv.fr\n ', 'Sophie DUHAMEL-LACOSTE\n sophie.duhamel-lacoste@pm.gouv.fr\n',
 				'Sophie DUHAMEL-LACOSTE sophie.duhamel-lacoste@pm.gouv.fr\n', 'Florian LEZEC, rank: Chef de la mission', 'Florian L\'EZEC shithad',
-				'madame LE COW big udders', "EriC BOUSSION DE BOUBOIR, bunny"
+				'madame LE COW big udders', "EriC BOUSSION DE BOUBOIR, bunny", "Marie-Claire SAINT JANE DE\n MARTIN\n Tel: 09283 Is a very nice person",
+				'Jean-LOuiS GALLET -- matches Jean LOu\n',
+				'Christine PIERRE-NEUNREUTHER\n', 
+				'Jean-François CHEsNÈ\n',
+				 "Marie-Claire SAINT JANE DE\n MARTIN is",
+				'Marc MORONl\n'
 				]
 
-names = regex.compile(r"""(^
-							(?:
-								(?:[\p{Lu}]
-									(?:[\p{Ll}]{2,15}){s<=2}
-									(?:[\p{Pd}][\p{Lu}][\p{Ll}]+\ |\ )
-									(?:
-										(?:
-											(?:[\p{Lu}]
-												(?:\'|[\p{Lu}]{2,15}){s<=1}
-												(?:[\p{Pd}][\'\p{Pd}\p{Lu}]{2,15})?
-											)
-										)|
-										(?:DE|DI|DA|DU|LE|LA)
-									)
-									(?:
-										(?:
-											(?:\ [\p{Lu}])
-											(?:\'|[\p{Lu}]{2,3})
-											(?:[\'\p{Pd}\p{Lu}]{0,10})
-										)|
-										(?:\ DE|\ DU|\ LE|\ LA)
-									){0,5}
-								)
-								|N\.\.\.)
-							)[\s,]""", regex.VERBOSE | regex.UNICODE |regex.V1)
 
+title = regex.compile(r"""
+								^,?\ ?(												#can start with a comma which sometimes separates from a name needs to be cleaned later
+									(?:
+										(?:[\p{Ll}][[\p{Ll}\-']--[@:\.]]{1,})\s		#a word with no caps or garbage
+										(?:
+											(?:
+												(?:[\p{Ll}][[\p{Ll}\-']--[@:\.]]{1,})|
+												(?:d\'État)|						#exceptions of capitalized words
+												(?:République)|
+												(?:Cour)|
+												(?:l\'iNSEE )|
+												(?:l\'INSEE)|
+												(?:TPE)|
+												(?:l\'Enseignement)|
+												(?:l\'Assemblée)|
+												(?:Cour)
+								
+										),?[\ \n]{1}\s?){0,12}					#after each word there can be a comma followed by either space or a line break
+									)
+								   )""", regex.UNICODE + regex.VERBOSE +regex.V1)
+
+prob = "\n Marie-Gaëlle BONFILS\n attachée principale d'administration\n marie-gaelle.bonfils@sgg.pm.gouv.fr\n Secteur II - Textes en Conseil des ministres\n et contentieux\n "
+
+
+names = regex.compile(r"""(^\s?
+							(?:(?!Secteur|Mission|Bureau|Télédoc|Télécopie|Site|Contact|Groupe|France
+									|Cellule|Délégation|Mission|Département|Centre|Télécom|Fonds|Iles
+									|Valletta|Bâtiment|Secteur|Projet|Sous-direction|Section|Pôle
+								)
+								(?:[\p{Lu}] 									#first letter of first name is capitalized
+									(?:[\p{Ll}]{2,15}){s<=1}					#then more letters all lowercase 
+									(?:[\p{Pd}][\p{Lu}](?:[\p{Ll}]+){s<=2}\s|\s)	#then the possibility of a hyphenated name or just a space
+							(?:
+								(?:											#Begin last name
+									(?:[\p{Lu}]								#last name starts with a cap
+										(?:[[\p{Pd}\p{Lu}\']--[,]]{3,23}){s<=1}	#then either an apostrophe uppercase letters or dashes
+									)|
+									(?:DE|DI|DA|DU|LE|LA)		#or one of the two letter names
+								)[\s\n]\s?){1,6}							#end last name and say it can be repeated 1 to 6 times		
+						)												#end the name	
+						|N\.\.\.)										#there can also be a N...
+					)""", regex.VERBOSE + regex.UNICODE + regex.V1 + regex.MULTILINE)
 for i in range(0, len(nameStrings)):
 	names.split(nameStrings[i])
 	names.findall(nameStrings[i])
@@ -194,7 +224,30 @@ for i in range(0, len(testStrings)):
 	title.findall(testStrings[i])
 
 
+title = regex.compile(r"^,?((?:(?:[\p{Ll}']{1,}[\s,])+))\n?", regex.UNICODE) #dashes are still metacharacters inside classes
+#insertions to deal with blank spaces or linebreaks and period at the end is option as often not caught
+email = regex.compile(r'^(?:([a-zA-Z0-9+.\-]+@[a-z0-9.\-]+\.?(?:fr|com|eu|org)){i<=2})', regex.UNICODE |regex.V1) 
+tel = regex.compile(r'^(?:Tél\.?\s*:\s*\+*((?:[0-9]\s?){10,14}){e<=1})', regex.UNICODE | regex.V1)
+fax = regex.compile(r'^(?:Fax\s*:\s*((?:\+*[0-9]\s?){10,14}){e<=1})', regex.UNICODE | regex.V1)
+regexes = dict(title = title, email = email, tel = tel, fax = fax)
 
+email = regex.compile(r'^(?:([a-zA-Z0-9+.\-]+@[a-z0-9.\-]+\.?(?:fr|com|eu|org)){i<=2})', regex.UNICODE |regex.V1) 
+getattr(regex,email)
+
+burEntriesIndex[200]
+testcontent = {'content': 'Haut fonctionnaire de défense\n et de sécurité\n Tél.: 01 4015 77 23\n \
+Fax: 01 4015 77 62\n •\tHaut fonctionnaire de défense\n et de sécurité :\n Binh LÊ NHAT\n binh.le-nhat@culture.gouv.fr\n \
+Tél. : 01 4015 77 23\n •\tHaut fonctionnaire adjoint :\n Jacques PLANTET\n jacques.plantet@culture.gouv.fr\n  yourmom@thefrenchgovernment.fr'}
+
+
+
+
+
+
+regexes = [email]
+
+for i in regexes:
+	print("i") 
 #evetually should work for multiple phone numbers	
 
 def myTokens(tokenized, entryName, isCoord, dentry):
@@ -231,10 +284,76 @@ def matchFax(string):
 	return(tokenized)
 
 
-
-	
-
+otherInfo =["jeAN-LoiUs BONFort\n"]
+potentialName = otherInfo[0].split("\n",1)[0].split(" ")	
+potentialOtherInfo =otherInfo[0].split("\n",1)[1]
 indEntries = rtest.split('•')
 indEntries[1].split(':', 1)
 		
-		
+
+t = recurseRemainder(addressStrings[1])
+recurseRemainder(addressStrings[0])
+org = regex.compile(r"(^[\p{Lu}](?:[[\p{Ll}\p{Lu}\-\'\(\),\s]--[\d:@\.]]+$))", regex.UNICODE + regex.V1)
+
+addressStrings = ["load of shit", "Association française de normalisation - Groupe AFNOR (AFNOR)", "Association française de normalisation - Groupe AFNOR (AFNOR)\n 1 1 rue Francis-de-Pressense 93571 La Plaine Saint-Denis Cedex Tél. : 01 41 62 80 00 Fax : 01 49 17 90 00 www.economie.gouv.fr\n"]
+
+for i in addressStrings:
+	org.findall(i)
+
+org = regex.compile(r"(^(?:(?:[\p{Lu}']{1,}[\s,])+)\n?)", regex.UNICODE)
+for i in webstrings:
+	website.split(i)
+	website.findall(i)
+	
+x= getData(testcontent['content'], burEntriesIndex[200])
+
+#this only appears to fail when the title is split from a name with a comma...
+"conseillère référendaire à la Cour\n \
+de cassation"
+
+"contrôleur\n \
+général des armées\n \
+Section des matériels de guerre et des biens sensibles"
+
+"Claude SOULIER\n \
+AGENCE D ÉVALUATION\n \
+ DE LA RECHERCHE\n \
+ ET DE L/'ENSEIGNEMENT" # matches as one name"
+
+"vice-amiral\n \
+d\'escadre"
+
+JOël LE STUM
+
+
+burEntriesIndex[200]
+testcontent = {'content': 'Haut fonctionnaire de défense\n et de sécurité\n Tél.: 01 4015 77 23\n \
+Fax: 01 4015 77 62\n •\tHaut fonctionnaire de défense\n et de sécurité :\n Binh LÊ NHAT\n binh.le-nhat@culture.gouv.fr\n \
+Tél. : 01 4015 77 23\n •\tHaut fonctionnaire adjoint :\n Jacques PLANTET\n jacques.plantet@culture.gouv.fr\n  yourmom@thefrenchgovernment.fr\
+Tél.: 01 6969 69 96\
+•	Responsables :\n \
+Yves CHEVRIER\n \
+chevrier@ehess.fr\n \
+Tél. : 01 49 54 25 01\n \
+Fax : 01 49 54 24 96\n \
+Pierre-Antoine FABRE\n \
+pafabre@ehess.fr\n \
+Pierre JUDET DE LA COMBE\n \
+delacomb@ehess.fr\n \
+Marc-Olivier BARUCH\n \
+baruch@ehess.fr\n \
+SECRETARIAT GENERAL\n \
+Fax: 01 45 44 93 11 \n \
+•	Secrétaire général :\n \
+Francis DELON\n \
+conseiller d\'État\n \
+•	Secrétaire général adjoint :\n \
+Pierre BOURLOT, général de corps\n \
+aérien\n \
+secretariat.general@ehess.fr'
+}
+
+def fancyPrint(x):
+	for y in x:
+		print(y, "\n")
+

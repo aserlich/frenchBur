@@ -22,30 +22,44 @@ def parseOrg(pnEntries, burEntries):
 		print(pnClose)
 		#pdb.set_trace()
 		bur['pageNumEnd'] = pnClose #assign that to the dictionary entry
-		distance = pnClose - pnOpen #how many pages there are we need to grab
-		start = bur['span'][0]
-		bur['content'] = str("")
+		#need to deal with advertising pages and any other pages missing -ANNOYING NEED TO FIND A BETTER WAY
+		#if they aren't one page before a missing number go ahead and caluclate normally
+		if (bur['pageNum'] not in [num - 1 for num in [48, 49, 62, 63, 93, 94, 234, 304]]) or bur['pageNum'] == bur['pageNumEnd']:
+			distance = pnClose - pnOpen #how many pages there are we need to grab
+		else:
+			if (bur['pageNum'] == 47 or bur['pageNum'] == 61 or bur['pageNum'] == 92):
+				distance = (pnClose - pnOpen) - 2
+				print(distance, bur['org'])
+				input("ENTER")
+			elif bur['pageNum'] == 233 or bur['pageNum'] == 303:
+				distance = (pnClose - pnOpen) - 1 #how many pages there are we need to grab
+				print(distance, bur['org'])
+				input("ENTER")
+		start = bur['span'][0] #find the beginning of the entry
+		bur['content'] = str("") 
 		print("Original distance", distance)
+		def recursePages(distance,begin, pageCount):
+			if distance == 0: # if the whole entry is on one page
+				print("I entered this DISTANCE0 or loop here")
+				print(bur['content'])
+				#add a slice which spans until the next entry on the last page needed to be evaluated
+				bur['content'] = bur['content'] + pnEntries[pageCount]['content'][begin:burEntries[b+1]['span'][0]]
+				#print(bur['content'])
+			else:
+				#if not get the page from wherever the last entry left off (or the beginning if it's the second time around) to the end
+				bur['content'] = bur['content'] + pnEntries[pageCount]['content'][begin:len(pnEntries[pageCount]['content'])]
+				begin = 0
+				distance = distance-1
+				pageCount +=1
+				#print(bur['content'])
+				print(distance)
+				#input("")
+				recursePages(distance,begin,pageCount)
 		for p, page in enumerate(pnEntries):
 			if page['pageNum'] == bur['pageNum']: #get that page
-				def recursePages(distance,start, p):
-					if distance == 0:
-						print("I entered this DISTANCE0 or loop here")
-						print(bur['content'])
-						bur['content'] = bur['content'] + pnEntries[p]['content'][start:burEntries[b+1]['span'][0]] #on one page
-						#print(bur['content'])
-					else:
-						bur['content'] = bur['content'] + pnEntries[p]['content'][bur['span'][0]:len(pnEntries[p]['content'])] #if not get the page from its start to the end
-						start = 0
-						distance = distance-1
-						p += 1
-						#print(bur['content'])
-						print(distance)
-						print(p)
-						#input("")
-						recursePages(distance,start,p)
-				recursePages(distance, start, p)
-	burEntries[-1]['content'] = pnEntries[-1]['content'][burEntries[-1]['span'][0]:len(pnEntries[-1]['content'])-1]
+				pageCount = p
+				recursePages(distance, start, pageCount)
+	burEntries[-1]['content'] = pnEntries[-1]['content'][burEntries[-1]['span'][0]:len(pnEntries[-1]['content'])-1] #deal with the last page separately
 	burEntries[-1]['pageNumEnd'] = pnEntries[-1]['pageNum']
 	return(burEntries)
 	
